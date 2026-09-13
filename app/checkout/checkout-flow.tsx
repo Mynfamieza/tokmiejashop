@@ -47,12 +47,14 @@ export function CheckoutFlow() {
   const summaryItems = cartItemsToSummaryItems(items);
   const totalItems = computeItemCount(items);
 
-  // COD is Kulim-only. If the address stops qualifying, fall back to Pay Now.
+  // COD is Kulim-only. The fee follows the customer's selected method; if the
+  // address is not eligible, `paymentMethod` is reset to "pay_now" in
+  // handleChange so the method, the radio and the fee stay in sync.
   const codAvailable = isKulimAddress(values.address);
   const effectivePaymentMethod: PaymentMethod =
     paymentMethod === "cod" && !codAvailable ? "pay_now" : paymentMethod;
 
-  const deliveryFee = calculateDeliveryFee(totalItems, effectivePaymentMethod);
+  const deliveryFee = calculateDeliveryFee(totalItems, paymentMethod);
   const total = subtotal + deliveryFee;
 
   function getKey(): string {
@@ -67,6 +69,15 @@ export function CheckoutFlow() {
 
   function handleChange(field: keyof CustomerFormValues, value: string) {
     setValues((current) => ({ ...current, [field]: value }));
+    // If the address no longer qualifies for COD, drop back to Pay Now so the
+    // method, the radio and the fee stay in sync.
+    if (
+      field === "address" &&
+      paymentMethod === "cod" &&
+      !isKulimAddress(value)
+    ) {
+      setPaymentMethod("pay_now");
+    }
     setErrors((current) => ({ ...current, [field]: undefined }));
   }
 
