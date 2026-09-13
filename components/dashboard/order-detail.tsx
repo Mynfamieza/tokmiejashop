@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CourierControl } from "@/components/dashboard/courier-control";
 import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
 import { StatusControl } from "@/components/dashboard/status-control";
 import type { OrderWithItems } from "@/lib/orders";
@@ -35,6 +36,12 @@ export function OrderDetail({ order }: { order: OrderWithItems }) {
       <StatusControl
         orderNumber={order.order_number}
         currentStatus={order.status}
+      />
+
+      <CourierControl
+        orderNumber={order.order_number}
+        currentCourier={order.courier}
+        currentTrackingNumber={order.tracking_number}
       />
 
       <div className="grid gap-6 lg:grid-cols-2">

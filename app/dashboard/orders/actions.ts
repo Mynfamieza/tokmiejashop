@@ -68,3 +68,85 @@ export async function updateOrderStatus(
     return { ok: false, message: GENERIC_ERROR };
   }
 }
+
+export type UpdateCourierResult =
+  | { ok: true }
+  | { ok: false; message: string };
+
+const COURIER_ERROR = "Could not save the courier details. Please try again.";
+const MAX_COURIER_LENGTH = 100;
+
+/**
+ * Owner-only: set or clear the optional courier + tracking number on an
+ * existing order. Empty values clear the fields. Status, payment, delivery
+ * and totals are never touched.
+ */
+export async function updateOrderCourier(
+  orderNumber: string,
+  courier: string,
+  trackingNumber: string,
+): Promise<UpdateCourierResult> {
+  // Verify authentication AND owner authorization inside the action itself.
+  const { configured, user, isOwner } = await getOwnerContext();
+
+  if (!configured) {
+    return {
+      ok: false,
+      message: "Order management is not available right now.",
+    };
+  }
+  if (!user) {
+    return { ok: false, message: "Please sign in again." };
+  }
+  if (!isOwner) {
+    return {
+      ok: false,
+      message: "You do not have permission to update orders.",
+    };
+  }
+
+  if (
+    typeof orderNumber !== "string" ||
+    orderNumber.length === 0 ||
+    orderNumber.length > 64
+  ) {
+    return { ok: false, message: "This order could not be found." };
+  }
+
+  const nextCourier = typeof courier === "string" ? courier.trim() : "";
+  const nextTracking =
+    typeof trackingNumber === "string" ? trackingNumber.trim() : "";
+
+  if (nextCourier.length > MAX_COURIER_LENGTH) {
+    return { ok: false, message: "Courier name is too long (max 100)." };
+  }
+  if (nextTracking.length > MAX_COURIER_LENGTH) {
+    return {
+      ok: false,
+      message: "Tracking number is too long (max 100).",
+    };
+  }
+
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("orders")
+      .update({
+        courier: nextCourier || null,
+        tracking_number: nextTracking || null,
+      })
+      .eq("order_number", orderNumber)
+      .select("order_number")
+      .maybeSingle();
+
+    if (error) return { ok: false, message: COURIER_ERROR };
+    if (!data) return { ok: false, message: "This order could not be found." };
+
+    revalidatePath("/dashboard/orders");
+    revalidatePath(`/dashboard/orders/${orderNumber}`);
+
+    return { ok: true };
+  } catch {
+    return { ok: false, message: COURIER_ERROR };
+  }
+}

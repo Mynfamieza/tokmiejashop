@@ -31,6 +31,25 @@ export function OrderTrackingResult({ order }: { order: TrackedOrder }) {
 
       <StatusTimeline status={order.status} />
 
+      {order.courier || order.trackingNumber ? (
+        <section className="rounded-panel border border-cocoa-900/10 bg-white p-5 sm:p-6">
+          <h2 className="font-display text-lg font-semibold text-cocoa-900">
+            Courier
+          </h2>
+          <dl className="mt-4 flex flex-col gap-3 text-sm">
+            {order.courier ? (
+              <DetailRow label="Courier" value={order.courier} />
+            ) : null}
+            {order.trackingNumber ? (
+              <DetailRow
+                label="Tracking number"
+                value={order.trackingNumber}
+              />
+            ) : null}
+          </dl>
+        </section>
+      ) : null}
+
       <section className="overflow-hidden rounded-panel border border-cocoa-900/10 bg-white">
         <h2 className="border-b border-cocoa-900/10 px-5 py-4 font-display text-lg font-semibold text-cocoa-900 sm:px-6">
           Items

@@ -48,6 +48,8 @@ export type Order = {
   payment_method: "pay_now" | "cod";
   payment_status: "unpaid" | "pending" | "paid" | "failed" | "refunded";
   location_pin: string | null;
+  courier: string | null;
+  tracking_number: string | null;
   toyyibpay_bill_code: string | null;
   toyyibpay_refno: string | null;
   toyyibpay_transaction_id: string | null;

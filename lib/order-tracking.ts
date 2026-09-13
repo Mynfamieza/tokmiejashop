@@ -20,6 +20,8 @@ export type TrackedOrder = {
   status: string;
   paymentMethod: string;
   paymentStatus: string;
+  courier: string | null;
+  trackingNumber: string | null;
   subtotal: number;
   deliveryFee: number;
   total: number;
@@ -94,6 +96,8 @@ export function parseTrackedOrder(data: unknown): TrackedOrder | null {
     status: toText(raw.status) || "pending",
     paymentMethod: toText(raw.payment_method) || "pay_now",
     paymentStatus: toText(raw.payment_status) || "unpaid",
+    courier: toText(raw.courier) || null,
+    trackingNumber: toText(raw.tracking_number) || null,
     subtotal: toNumber(raw.subtotal),
     deliveryFee: toNumber(raw.delivery_fee),
     total: toNumber(raw.total),
