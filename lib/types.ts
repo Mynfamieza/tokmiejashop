@@ -6,6 +6,8 @@ export type Product = {
   price: number;
   cost_price: number;
   image_url: string | null;
+  image_url_2: string | null;
+  image_url_3: string | null;
   category: string;
   active: boolean;
   featured: boolean;

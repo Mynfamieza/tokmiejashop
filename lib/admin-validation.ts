@@ -21,6 +21,8 @@ export type ProductInput = {
   category: string;
   description: string;
   imageUrl: string;
+  imageUrl2: string;
+  imageUrl3: string;
   featured: boolean;
   active: boolean;
 };
@@ -32,7 +34,9 @@ export type ProductField =
   | "stockQuantity"
   | "category"
   | "description"
-  | "imageUrl";
+  | "imageUrl"
+  | "imageUrl2"
+  | "imageUrl3";
 
 export type ProductErrors = Partial<Record<ProductField, string>>;
 
@@ -44,6 +48,8 @@ export type NormalizedProduct = {
   category: string;
   description: string | null;
   image_url: string | null;
+  image_url_2: string | null;
+  image_url_3: string | null;
   featured: boolean;
   active: boolean;
 };
@@ -92,6 +98,16 @@ export function validateProductInput(input: ProductInput): {
     errors.imageUrl = "Image URL must start with http:// or https://.";
   }
 
+  const imageUrl2 = (input.imageUrl2 ?? "").trim();
+  if (imageUrl2 && !/^https?:\/\/.+/i.test(imageUrl2)) {
+    errors.imageUrl2 = "Image URL must start with http:// or https://.";
+  }
+
+  const imageUrl3 = (input.imageUrl3 ?? "").trim();
+  if (imageUrl3 && !/^https?:\/\/.+/i.test(imageUrl3)) {
+    errors.imageUrl3 = "Image URL must start with http:// or https://.";
+  }
+
   return {
     values: {
       name,
@@ -101,6 +117,8 @@ export function validateProductInput(input: ProductInput): {
       category,
       description: description || null,
       image_url: imageUrl || null,
+      image_url_2: imageUrl2 || null,
+      image_url_3: imageUrl3 || null,
       featured: Boolean(input.featured),
       active: Boolean(input.active),
     },

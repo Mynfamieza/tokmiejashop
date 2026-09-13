@@ -1,7 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 import { AddToCart } from "@/components/cart/add-to-cart";
-import { ProductImagePlaceholder } from "@/components/product-image-placeholder";
+import { ProductGallery } from "@/components/product-gallery";
 import { Badge } from "@/components/ui/badge";
 import { COD_DELIVERY_FEE, DELIVERY_FEE, FREE_DELIVERY_MIN_QUANTITY } from "@/lib/delivery";
 import type { Category, Product } from "@/lib/types";
@@ -34,20 +33,14 @@ export function ProductDetail({
       </nav>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-2 lg:gap-12">
-        <div className="relative aspect-square overflow-hidden rounded-panel border border-cocoa-900/10 bg-cream-100">
-          {product.image_url ? (
-            <Image
-              src={product.image_url}
-              alt={product.name}
-              fill
-              priority
-              sizes="(min-width: 1024px) 50vw, 100vw"
-              className="object-cover"
-            />
-          ) : (
-            <ProductImagePlaceholder />
-          )}
-        </div>
+        <ProductGallery
+          images={[
+            product.image_url,
+            product.image_url_2,
+            product.image_url_3,
+          ].filter((url): url is string => Boolean(url))}
+          alt={product.name}
+        />
 
         <div className="flex flex-col gap-5">
           <Badge variant="neutral" className="w-fit">

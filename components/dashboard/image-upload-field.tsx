@@ -11,11 +11,13 @@ import {
 
 export function ImageUploadField({
   currentUrl,
+  label = "Product image",
   disabled,
   onFileSelected,
   onRemove,
 }: {
   currentUrl: string;
+  label?: string;
   disabled?: boolean;
   onFileSelected: (file: File) => void;
   onRemove: () => void;
@@ -68,9 +70,7 @@ export function ImageUploadField({
 
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-sm font-semibold text-cocoa-800">
-        Product image
-      </span>
+      <span className="text-sm font-semibold text-cocoa-800">{label}</span>
 
       <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-cocoa-900/20 bg-cream-50 p-4">
         <div className="relative aspect-square w-full max-w-[14rem] overflow-hidden rounded-xl border border-cocoa-900/10 bg-cream-100">

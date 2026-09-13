@@ -20,6 +20,24 @@ import type { Category, Product } from "@/lib/types";
 
 type Phase = "idle" | "uploading" | "saving";
 
+type ImageSlotKey = "main" | "inside" | "texture";
+
+const IMAGE_SLOTS: { key: ImageSlotKey; label: string }[] = [
+  { key: "main", label: "Main photo" },
+  { key: "inside", label: "Inside / contents photo" },
+  { key: "texture", label: "Texture / serving photo" },
+];
+
+type ImageSlotState = Record<ImageSlotKey, string>;
+
+function emptySlots(): Record<ImageSlotKey, boolean> {
+  return { main: false, inside: false, texture: false };
+}
+
+function noFiles(): Record<ImageSlotKey, File | null> {
+  return { main: null, inside: null, texture: null };
+}
+
 export function ProductForm({
   mode,
   product,
@@ -31,7 +49,11 @@ export function ProductForm({
 }) {
   const router = useRouter();
 
-  const existingImageUrl = product?.image_url ?? "";
+  const existingImageUrls: ImageSlotState = {
+    main: product?.image_url ?? "",
+    inside: product?.image_url_2 ?? "",
+    texture: product?.image_url_3 ?? "",
+  };
 
   const [name, setName] = useState(product?.name ?? "");
   const [price, setPrice] = useState(product ? String(product.price) : "");
@@ -48,8 +70,10 @@ export function ProductForm({
   const [featured, setFeatured] = useState(product?.featured ?? false);
   const [active, setActive] = useState(product?.active ?? true);
 
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [removeImage, setRemoveImage] = useState(false);
+  const [imageFiles, setImageFiles] =
+    useState<Record<ImageSlotKey, File | null>>(noFiles);
+  const [removeImage, setRemoveImage] =
+    useState<Record<ImageSlotKey, boolean>>(emptySlots);
 
   const [fieldErrors, setFieldErrors] = useState<ProductErrors>({});
   const [message, setMessage] = useState<string | null>(null);
@@ -57,14 +81,14 @@ export function ProductForm({
 
   const submitting = phase !== "idle";
 
-  function handleFileSelected(file: File) {
-    setImageFile(file);
-    setRemoveImage(false);
+  function handleFileSelected(slot: ImageSlotKey, file: File) {
+    setImageFiles((current) => ({ ...current, [slot]: file }));
+    setRemoveImage((current) => ({ ...current, [slot]: false }));
   }
 
-  function handleRemoveImage() {
-    setImageFile(null);
-    setRemoveImage(true);
+  function handleRemoveImage(slot: ImageSlotKey) {
+    setImageFiles((current) => ({ ...current, [slot]: null }));
+    setRemoveImage((current) => ({ ...current, [slot]: true }));
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -82,7 +106,9 @@ export function ProductForm({
       stockQuantity,
       category,
       description,
-      imageUrl: removeImage ? "" : existingImageUrl,
+      imageUrl: removeImage.main ? "" : existingImageUrls.main,
+      imageUrl2: removeImage.inside ? "" : existingImageUrls.inside,
+      imageUrl3: removeImage.texture ? "" : existingImageUrls.texture,
       featured,
       active,
     };
@@ -93,23 +119,34 @@ export function ProductForm({
       return;
     }
 
-    let finalImageUrl = removeImage ? "" : existingImageUrl;
-    let uploadedPath: string | null = null;
+    // Upload any newly chosen images (existing product folder when editing).
+    const finalImageUrls: ImageSlotState = { ...existingImageUrls };
+    const uploadedPaths: string[] = [];
 
-    if (imageFile) {
+    for (const slot of IMAGE_SLOTS) {
+      if (removeImage[slot.key]) {
+        finalImageUrls[slot.key] = "";
+        continue;
+      }
+
+      const file = imageFiles[slot.key];
+      if (!file) continue;
+
       setPhase("uploading");
       const formData = new FormData();
-      formData.append("file", imageFile);
+      formData.append("file", file);
       if (product) formData.append("productId", product.id);
 
       const upload = await uploadProductImage(formData);
       if (!upload.ok) {
+        // Do not leave freshly uploaded files orphaned.
+        for (const path of uploadedPaths) await deleteProductImage(path);
         setMessage(upload.message);
         setPhase("idle");
         return;
       }
-      finalImageUrl = upload.url;
-      uploadedPath = upload.path;
+      finalImageUrls[slot.key] = upload.url;
+      uploadedPaths.push(upload.path);
     }
 
     setPhase("saving");
@@ -120,7 +157,9 @@ export function ProductForm({
       stockQuantity,
       category,
       description,
-      imageUrl: finalImageUrl,
+      imageUrl: finalImageUrls.main,
+      imageUrl2: finalImageUrls.inside,
+      imageUrl3: finalImageUrls.texture,
       featured,
       active,
     };
@@ -131,21 +170,22 @@ export function ProductForm({
         : await createProduct(input);
 
     if (!result.ok) {
-      // Do not leave a freshly uploaded file orphaned if saving failed.
-      if (uploadedPath) await deleteProductImage(uploadedPath);
+      for (const path of uploadedPaths) await deleteProductImage(path);
       setMessage(result.message);
       setFieldErrors(result.fieldErrors ?? {});
       setPhase("idle");
       return;
     }
 
-    // Old image is removed only after the new one is stored and saved.
-    if (
-      (imageFile || removeImage) &&
-      existingImageUrl &&
-      existingImageUrl !== finalImageUrl
-    ) {
-      await deleteProductImage(existingImageUrl);
+    // Old images are removed only after the new ones are stored and saved.
+    for (const slot of IMAGE_SLOTS) {
+      if (
+        (imageFiles[slot.key] || removeImage[slot.key]) &&
+        existingImageUrls[slot.key] &&
+        existingImageUrls[slot.key] !== finalImageUrls[slot.key]
+      ) {
+        await deleteProductImage(existingImageUrls[slot.key]);
+      }
     }
 
     router.push("/dashboard/products");
@@ -314,12 +354,25 @@ export function ProductForm({
         </FieldError>
       </div>
 
-      <ImageUploadField
-        currentUrl={removeImage ? "" : existingImageUrl}
-        disabled={submitting}
-        onFileSelected={handleFileSelected}
-        onRemove={handleRemoveImage}
-      />
+      <div className="flex flex-col gap-6">
+        <h2 className="font-display text-lg font-semibold text-cocoa-900">
+          Product images
+        </h2>
+        <p className="-mt-3 text-xs text-cocoa-500">
+          Up to 3 photos: the main photo is used on product cards and link
+          previews.
+        </p>
+        {IMAGE_SLOTS.map((slot) => (
+          <ImageUploadField
+            key={slot.key}
+            label={slot.label}
+            currentUrl={removeImage[slot.key] ? "" : existingImageUrls[slot.key]}
+            disabled={submitting}
+            onFileSelected={(file) => handleFileSelected(slot.key, file)}
+            onRemove={() => handleRemoveImage(slot.key)}
+          />
+        ))}
+      </div>
 
       <div className="flex flex-col gap-3 rounded-xl border border-cocoa-900/10 bg-cream-50 px-4 py-3">
         <label className="flex items-center gap-3">
