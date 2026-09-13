@@ -47,15 +47,28 @@ export function CheckoutFlow() {
   const summaryItems = cartItemsToSummaryItems(items);
   const totalItems = computeItemCount(items);
 
-  // COD is Kulim-only. The fee follows the customer's selected method; if the
-  // address is not eligible, `paymentMethod` is reset to "pay_now" in
-  // handleChange so the method, the radio and the fee stay in sync.
+  // COD is Kulim-only. `paymentMethod` is the single source of truth for the
+  // radio, the fee, the review and the submitted order. If the address is not
+  // eligible for COD, `handleChange` resets the method to "pay_now".
   const codAvailable = isKulimAddress(values.address);
-  const effectivePaymentMethod: PaymentMethod =
-    paymentMethod === "cod" && !codAvailable ? "pay_now" : paymentMethod;
+
+  // [TOKMIEJA CHECKOUT DEBUG] temporary diagnostics - remove after debugging.
+  console.debug("[TOKMIEJA CHECKOUT DEBUG] calculateDeliveryFee arguments", {
+    quantity: totalItems,
+    paymentMethod,
+  });
 
   const deliveryFee = calculateDeliveryFee(totalItems, paymentMethod);
   const total = subtotal + deliveryFee;
+
+  // [TOKMIEJA CHECKOUT DEBUG] temporary diagnostics - remove after debugging.
+  console.debug("[TOKMIEJA CHECKOUT DEBUG] checkout state", {
+    address: values.address,
+    codAvailable,
+    paymentMethod,
+    totalItems,
+    deliveryFee,
+  });
 
   function getKey(): string {
     if (!idempotencyKeyRef.current) {
@@ -84,7 +97,7 @@ export function CheckoutFlow() {
   function handleContinue() {
     const nextErrors = validateCustomer(values);
     if (
-      effectivePaymentMethod === "pay_now" &&
+      paymentMethod === "pay_now" &&
       values.email.trim().length === 0
     ) {
       nextErrors.email = "Email is required for online payment.";
@@ -113,7 +126,7 @@ export function CheckoutFlow() {
           quantity: item.quantity,
         })),
         idempotencyKey: getKey(),
-        paymentMethod: effectivePaymentMethod,
+        paymentMethod,
         locationPin: values.locationPin,
       });
 
@@ -174,7 +187,7 @@ export function CheckoutFlow() {
               disabled={submitting}
             />
             <PaymentMethodSelect
-              value={effectivePaymentMethod}
+              value={paymentMethod}
               onChange={setPaymentMethod}
               codAvailable={codAvailable}
               disabled={submitting}
@@ -206,7 +219,7 @@ export function CheckoutFlow() {
             subtotal={subtotal}
             deliveryFee={deliveryFee}
             total={total}
-            paymentMethod={effectivePaymentMethod}
+            paymentMethod={paymentMethod}
             onBack={() => setStep("details")}
             onConfirm={handleConfirm}
             submitting={submitting}
