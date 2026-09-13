@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+/*
+  TokMieja Shop - design tokens
+  -----------------------------
+  Warm, appetising Malaysian F&B palette.
+  - brand  : deep maroon / red (primary)
+  - mango  : warm yellow / orange (accent)
+  - cream  : warm off-white (surfaces)
+  - cocoa  : dark brown / charcoal (text, borders)
+*/
+@theme {
+  --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, Cambria, serif;
+
+  --color-brand-50: #fbf2f1;
+  --color-brand-100: #f7ddda;
+  --color-brand-200: #efbab4;
+  --color-brand-300: #e3928a;
+  --color-brand-400: #d5685d;
+  --color-brand-500: #c2463b;
+  --color-brand-600: #a6342b;
+  --color-brand-700: #8a2420;
+  --color-brand-800: #6e1d1a;
+  --color-brand-900: #591715;
+  --color-brand-950: #350c0b;
+
+  --color-mango-50: #fff8eb;
+  --color-mango-100: #fdebc7;
+  --color-mango-200: #fad78b;
+  --color-mango-300: #f7c254;
+  --color-mango-400: #f4ab25;
+  --color-mango-500: #e0920f;
+  --color-mango-600: #b9710a;
+
+  --color-cream-50: #fffdf8;
+  --color-cream-100: #fdf7ec;
+  --color-cream-200: #f9eeda;
+  --color-cream-300: #f2e0c4;
+
+  --color-cocoa-50: #faf6f3;
+  --color-cocoa-100: #f1e9e4;
+  --color-cocoa-200: #e2d4cc;
+  --color-cocoa-300: #c9b4a8;
+  --color-cocoa-400: #a98e80;
+  --color-cocoa-500: #8a6d5e;
+  --color-cocoa-600: #6e5548;
+  --color-cocoa-700: #574238;
+  --color-cocoa-800: #3e2f28;
+  --color-cocoa-900: #2a1f1a;
+  --color-cocoa-950: #1a1310;
+
+  --radius-card: 1.25rem;
+  --radius-panel: 1.75rem;
+
+  --shadow-soft: 0 1px 2px rgba(42, 31, 26, 0.04),
+    0 12px 28px -20px rgba(42, 31, 26, 0.28);
+  --shadow-card: 0 1px 0 rgba(42, 31, 26, 0.03),
+    0 20px 44px -30px rgba(42, 31, 26, 0.45);
+  --shadow-button: 0 8px 18px -10px rgba(138, 36, 32, 0.5);
+
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-cream-50);
+    color: var(--color-cocoa-900);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
+
+  ::selection {
+    background-color: var(--color-mango-200);
+    color: var(--color-cocoa-900);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .container-page {
+    width: 100%;
+    margin-inline: auto;
+    max-width: 72rem;
+    padding-inline: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .container-page {
+      padding-inline: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container-page {
+      padding-inline: 2rem;
+    }
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
