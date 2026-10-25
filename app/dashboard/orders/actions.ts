@@ -4,63 +4,6 @@ import { revalidatePath } from "next/cache";
 import { getOwnerContext } from "@/lib/auth";
 import { isOrderStatus } from "@/lib/order-status";
 import { createClient } from "@/lib/supabase/server";
-import { isPaymentStatus } from "@/lib/delivery";
-
-/** Payment state changes only after an explicit save by an authenticated owner. */
-export async function updateOrderPaymentStatus(
-  orderNumber: string,
-  paymentStatus: string,
-): Promise<UpdateOrderStatusResult> {
-  const { configured, user, isOwner } = await getOwnerContext();
-  if (!configured || !user || !isOwner) {
-    return { ok: false, message: "Please sign in with an owner account to verify payments." };
-  }
-  if (
-    typeof orderNumber !== "string" ||
-    orderNumber.length === 0 ||
-    orderNumber.length > 64 ||
-    !isPaymentStatus(paymentStatus)
-  ) {
-    return { ok: false, message: "Please choose a valid order and payment status." };
-  }
-
-  try {
-    const supabase = await createClient();
-    const { data: current, error: readError } = await supabase
-      .from("orders")
-      .select("payment_paid_at, updated_at")
-      .eq("order_number", orderNumber)
-      .maybeSingle();
-    if (readError || !current) {
-      return { ok: false, message: "This order could not be loaded. Please refresh and try again." };
-    }
-
-    const { data, error } = await supabase
-      .from("orders")
-      .update({
-        payment_status: paymentStatus,
-        // Keep any original payment timestamp and all historical gateway fields.
-        payment_paid_at: paymentStatus === "paid" && !current.payment_paid_at
-          ? new Date().toISOString()
-          : current.payment_paid_at,
-      })
-      .eq("order_number", orderNumber)
-      .eq("updated_at", current.updated_at)
-      .select("order_number")
-      .maybeSingle();
-
-    if (error) return { ok: false, message: "Could not save the payment status. Please try again." };
-    if (!data) return { ok: false, message: "The order changed. Please refresh before saving again." };
-
-    revalidatePath("/dashboard");
-    revalidatePath("/dashboard/orders");
-    revalidatePath(`/dashboard/orders/${orderNumber}`);
-    revalidatePath("/dashboard/finance");
-    return { ok: true };
-  } catch {
-    return { ok: false, message: "Could not save the payment status. Please try again." };
-  }
-}
 
 export type UpdateOrderStatusResult =
   | { ok: true }

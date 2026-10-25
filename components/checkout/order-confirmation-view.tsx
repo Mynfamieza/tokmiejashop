@@ -6,7 +6,7 @@ import { DuitNowPayment } from "@/components/checkout/duitnow-payment";
 import { ArrowRightIcon, CheckIcon } from "@/components/icons";
 import { buttonVariants } from "@/components/ui/button";
 import { loadOrderConfirmation } from "@/lib/checkout";
-import { isPendingQrPayment, paymentMethodLabel, paymentStatusLabel } from "@/lib/delivery";
+import { paymentMethodLabel, paymentStatusLabel } from "@/lib/delivery";
 import { useIsClient } from "@/lib/use-is-client";
 
 export function OrderConfirmationView({
@@ -49,7 +49,8 @@ export function OrderConfirmationView({
         </span>
       </div>
 
-      {isPendingQrPayment(order.paymentMethod, order.paymentStatus) &&
+      {order.paymentMethod === "pay_now" &&
+      order.paymentStatus === "unpaid" &&
       order.status !== "cancelled" ? (
         <DuitNowPayment orderNumber={order.orderNumber} total={order.total} />
       ) : null}
@@ -88,16 +89,10 @@ export function OrderConfirmationView({
       <p className="text-sm leading-relaxed text-cocoa-500">
         {order.paymentMethod === "cod"
           ? "COD / Pay by Hand — please prepare payment when your order is handed over. We will contact you to confirm delivery."
-          : "Status bayaran di halaman ini ialah status semasa pesanan dibuat. Semak status terkini melalui Track order menggunakan nombor pesanan dan telefon anda."}
+          : "Bayaran DuitNow QR disemak secara manual oleh TokMieja. Status di halaman ini ialah status semasa pesanan dibuat."}
       </p>
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Link
-          href="/track-order"
-          className={buttonVariants({ variant: "outline", size: "lg" })}
-        >
-          Track order
-        </Link>
         <Link
           href="/products"
           className={buttonVariants({ size: "lg" })}
@@ -153,9 +148,6 @@ function MissingConfirmation({ orderNumber }: { orderNumber: string }) {
         this browser session. If you just placed the order, try opening the
         confirmation link from the same browser.
       </p>
-      <Link href="/track-order" className={buttonVariants({ size: "lg" })}>
-        Track order with your phone number
-      </Link>
       <Link
         href="/products"
         className={buttonVariants({ variant: "outline", size: "lg" })}

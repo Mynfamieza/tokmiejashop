@@ -120,6 +120,10 @@ You must run the SQL yourself in the Supabase SQL Editor.
 9. Open a new query, paste `supabase/phase6_delivery_payment.sql` and click
    **Run**. This adds delivery/payment fields and updates the secure
    `create_order` function (see section 16).
+10. Open a new query, paste `supabase/phase7b_toyyibpay.sql` and click **Run**.
+    This renames/adds the ToyyibPay tracking columns and adds the secure
+    callback processor. Retain this historical migration for existing stores.
+    Then apply `phase13_manual_duitnow.sql` last to retire callback access.
 
 ### Verify the data
 
@@ -210,7 +214,7 @@ Order statuses: `pending`, `confirmed`, `preparing`, `shipped`, `completed`,
 - **Phase 5:** owner product & category management. ✅
 - **Phase 5.1:** product image upload to Supabase Storage. ✅
 - **Phase 6:** delivery fee, free delivery & payment method foundation. ✅
-- **Payment:** manual DuitNow QR (`pay_now`) and Kulim-only COD.
+- **Payment:** manual DuitNow QR (`pay_now`); existing COD remains unchanged.
 - **Later:** refunds, WhatsApp, notifications, analytics, PWA.
 
 ---
@@ -236,8 +240,8 @@ Duplicate submissions are prevented by disabling the Confirm button while
 submitting plus an `orders.idempotency_key` unique index: a repeated submission
 returns the existing order instead of creating a second one.
 
-The later Phase 6 and Phase 10.2 migrations calculate delivery on the server:
-RM6 for QR or RM2 for eligible COD on 1–4 jars; free for 5+ jars.
+Delivery fee is stored as `0` and is **not** calculated yet; payment is not
+implemented. The UI says so explicitly and does not claim delivery is free.
 
 Order confirmation details are kept in `sessionStorage` (survives refresh);
 there is no public read access to the `orders` table, so one customer can never
@@ -327,13 +331,13 @@ Owners upload images directly from the product form instead of pasting URLs.
 Business rules (all recalculated **server-side** in `create_order`; the client
 is never trusted for fees, totals, eligibility or payment status):
 
-- **Standard delivery:** RM6 for QR; RM2 for COD (Phase 10.2), no minimum order.
+- **Standard delivery:** RM6, no minimum order.
 - **Free delivery:** when the total product **quantity** across the order is
   **5 jars/bottles or more** (quantity based, not subtotal based).
 - **Payment method:** `pay_now` or `cod` (COD / Pay by Hand).
 - **COD eligibility:** Kulim addresses only, checked server-side.
 - **Payment status:** `pay_now` → `unpaid`; `cod` → `pending`. Nothing is marked
-  `paid` until the owner manually verifies and saves the payment status.
+  `paid` until the owner manually verifies it through the existing process.
 - **Location pin:** optional Google Maps link, validated as `http(s)://`.
 
 Database (`supabase/phase6_delivery_payment.sql`):
@@ -355,44 +359,33 @@ Subtotal/Delivery (FREE when applicable)/Total, and the review step shows the
 delivery + payment choice. The customer confirmation and the owner order detail
 display the payment method/status and delivery details.
 
-## 17. Manual DuitNow QR payments
+---
 
-Checkout uses the owner's unchanged QR at `public/duitnow-qr.jpg`. The image is
-copied directly from the supplied JPEG, without generating or re-encoding a QR.
-`pay_now` remains the database value for compatibility. Email is optional.
+## 17. Manual DuitNow QR payment
 
-Details → Review (including delivery and total) → Confirm Order → Supabase
-`create_order` → confirmation with the exact saved total, order reference,
-Malay payment instructions and Download QR. Customers enter the amount in
-their bank/e-wallet app themselves. QR orders start `unpaid`; downloading or
-scanning the image does not update payment status. Failed order creation keeps
-the cart. Confirmation survives refresh in the same browser session, with an
-in-memory fallback if sessionStorage is blocked. Track order provides current
-payment status using the order number and checkout phone number.
+The existing `pay_now` option is now **DuitNow QR (Manual Payment)**. Checkout
+saves the order through the existing `create_order` function and opens the
+existing confirmation page. That page shows the owner's original image at
+`public/duitnow-qr.jpg`, the exact saved total, order reference, Malay payment
+instructions and a Download QR button. Customers enter the amount themselves.
+Email is optional. New QR orders remain `unpaid` until manual owner verification;
+viewing or downloading QR never confirms payment.
 
-The owner checks the receiving bank/e-wallet account, matches the amount and
-reference, then uses **Payment status → Paid → Save payment status** in the
-order detail. Only an authenticated, allowlisted owner can save; existing RLS
-remains enforced. Order status, courier, stock and totals are not changed by
-payment verification. Historical ToyyibPay references and timestamps remain
-visible in the owner detail.
+COD, delivery calculations, cart persistence, order creation/idempotency, order
+management and dashboard controls retain their original behavior. Historical
+ToyyibPay fields, payment records and migrations are preserved. The owner's
+existing verification process remains in place; no new dashboard control or
+payment-status action is introduced.
 
-### Database change (manual; not applied by this code change)
+`supabase/phase13_manual_duitnow.sql` only revokes public/anon/authenticated
+execution of the old callback RPC, if present. It is idempotent and changes no
+order data. Apply it after existing migrations in a test project first. Do not
+re-run phase7b afterward, since it re-grants callback access. The existing
+`create_order` already accepts `pay_now` and initializes it as `unpaid`.
 
-Run `supabase/phase13_manual_duitnow.sql` after existing migrations in a test
-Supabase project first. It safely revokes public/anon/authenticated execution
-of the old ToyyibPay callback RPC if it exists. It preserves the function,
-payment records, columns and historical migrations, and changes no order data.
-Do not re-run `phase7b_toyyibpay.sql` afterward, because it re-grants callback
-access. The active checkout no longer calls any ToyyibPay API, return page or
-webhook. The existing `create_order` from `phase10_2_cod_delivery_fee.sql`
-already accepts `pay_now`, allows null email and sets QR payments to `unpaid`;
-no replacement of that function is needed.
+ToyyibPay API calls, redirects, routes and environment examples are removed.
+Remove obsolete `TOYYIBPAY_*` deployment variables during a future rollout.
+`vercel.json` disables automatic deployments for this feature branch only.
+No deployment, production migration or production data change is performed.
 
-Remove obsolete `TOYYIBPAY_*` variables from any future deployment environment
-when rolling this change out. The example and local environment no longer
-contain them. No service-role key is required. Keep `NEXT_PUBLIC_APP_URL` since
-metadata still uses it. Do not run seed SQL against an existing live store.
-
-See [the manual test checklist](docs/manual-duitnow-testing.md) for exact test
-steps. This change does not deploy the site or apply SQL automatically.
+See [manual test steps](docs/manual-duitnow-testing.md).

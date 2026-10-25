@@ -14,16 +14,13 @@ export type OrderListItem = Pick<
   | "customer_phone"
   | "total"
   | "status"
-  | "payment_method"
-  | "payment_status"
-  | "toyyibpay_bill_code"
   | "created_at"
 >;
 
 export type OrderWithItems = Order & { order_items: OrderItem[] };
 
 const LIST_COLUMNS =
-  "id, order_number, customer_name, customer_phone, total, status, payment_method, payment_status, toyyibpay_bill_code, created_at";
+  "id, order_number, customer_name, customer_phone, total, status, created_at";
 
 const ORDERS_ERROR = "Unable to load orders right now. Please try again.";
 const ORDER_ERROR = "Unable to load this order right now. Please try again.";

@@ -3,7 +3,6 @@ import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
 import type { OrderListItem } from "@/lib/orders";
 import { formatOrderDate } from "@/lib/order-status";
 import { formatPrice } from "@/lib/utils";
-import { isPendingQrPayment, paymentMethodLabel, paymentStatusLabel } from "@/lib/delivery";
 
 export function OrdersList({
   orders,
@@ -51,19 +50,6 @@ export function OrdersList({
               <p className="mt-1 truncate text-sm text-cocoa-700">
                 {order.customer_name} · {order.customer_phone}
               </p>
-              <p className="mt-2 text-xs text-cocoa-500">
-                {order.toyyibpay_bill_code
-                  ? "ToyyibPay (historical)"
-                  : paymentMethodLabel(order.payment_method)}
-                {" · "}{paymentStatusLabel(order.payment_status)}
-              </p>
-              {!order.toyyibpay_bill_code &&
-              order.status !== "cancelled" &&
-              isPendingQrPayment(order.payment_method, order.payment_status) ? (
-                <p className="mt-1 text-xs font-semibold text-brand-700" lang="ms">
-                  Menunggu Pengesahan Bayaran
-                </p>
-              ) : null}
             </div>
 
             <div className="flex shrink-0 flex-col items-end gap-1">

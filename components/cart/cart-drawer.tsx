@@ -218,7 +218,7 @@ export function CartDrawer() {
                 </span>
               </div>
               <p className="mt-1 text-xs text-cocoa-500">
-                Delivery RM{DELIVERY_FEE.toFixed(2)} (DuitNow QR) or RM
+                Delivery RM{DELIVERY_FEE.toFixed(2)} (Pay Now) or RM
                 {COD_DELIVERY_FEE.toFixed(2)} (COD) · FREE for{" "}
                 {FREE_DELIVERY_MIN_QUANTITY}+ jars.
               </p>

@@ -124,18 +124,20 @@ test("QR/COD delivery fees and initial payment states remain unchanged", () => {
   assert.equal(delivery.paymentStatusFor("cod"), "pending");
 });
 
-test("confirmation remains available during navigation when storage is blocked", () => {
+test("confirmation retains the saved total and reference after a session refresh", () => {
   const previousWindow = global.window;
+  const storage = new Map();
   global.window = { sessionStorage: {
-    setItem() { throw new Error("blocked"); },
-    getItem() { throw new Error("blocked"); },
+    setItem(key, value) { storage.set(key, value); },
+    getItem(key) { return storage.get(key) ?? null; },
   } };
   try {
     const checkout = loader()("lib/checkout.ts");
     const order = { orderNumber: "TM-TEST-001", total: 32, items: [] };
     checkout.saveOrderConfirmation(order);
-    assert.equal(checkout.loadOrderConfirmation(order.orderNumber), order);
-    assert.equal(checkout.loadOrderConfirmation("other-order"), null);
+    const refreshed = loader()("lib/checkout.ts").loadOrderConfirmation(order.orderNumber);
+    assert.equal(refreshed.orderNumber, order.orderNumber);
+    assert.equal(refreshed.total, order.total);
   } finally { global.window = previousWindow; }
 });
 
@@ -160,40 +162,6 @@ test("QR render shows the saved amount, original asset, download and pending cop
   assert.doesNotMatch(html, /Payment Successful/i);
 });
 
-test("payment updates reject non-owners before accessing orders", async () => {
-  const load = loader({
-    "next/cache": { revalidatePath() {} },
-    "@/lib/auth": { getOwnerContext: async () => ({ configured: true, user: { id: "test" }, isOwner: false }) },
-    "@/lib/supabase/server": { createClient: async () => { throw new Error("Unexpected database call"); } },
-  });
-  const result = await load("app/dashboard/orders/actions.ts")
-    .updateOrderPaymentStatus(summary.order_number, "paid");
-  assert.equal(result.ok, false);
-});
-
-test("owner verification updates only payment state and preserves original paid timestamp", async () => {
-  const historicalPaidAt = "2025-01-01T00:00:00.000Z";
-  let update;
-  const load = loader({
-    "next/cache": { revalidatePath() {} },
-    "@/lib/auth": { getOwnerContext: async () => ({ configured: true, user: { id: "test-owner" }, isOwner: true }) },
-    "@/lib/supabase/server": { createClient: async () => ({ from: () => {
-      const query = {
-        select: () => query, eq: () => query,
-        update: (value) => { update = value; return query; },
-        maybeSingle: async () => ({ data: update
-          ? { order_number: summary.order_number }
-          : { payment_paid_at: historicalPaidAt, updated_at: historicalPaidAt }, error: null }),
-      };
-      return query;
-    } }) },
-  });
-  const result = await load("app/dashboard/orders/actions.ts")
-    .updateOrderPaymentStatus(summary.order_number, "paid");
-  assert.equal(result.ok, true);
-  assert.deepEqual(update, { payment_status: "paid", payment_paid_at: historicalPaidAt });
-});
-
 function checkoutHarness(createOrder) {
   const states = [];
   const events = [];
@@ -214,7 +182,7 @@ function checkoutHarness(createOrder) {
         return states[index];
       },
     },
-    "next/navigation": { useRouter: () => ({ replace: (url) => events.push(["navigate", url]) }) },
+    "next/navigation": { useRouter: () => ({ push: (url) => events.push(["navigate", url]) }) },
     "@/lib/use-is-client": { useIsClient: () => true },
     "@/components/cart/cart-provider": { useCart: () => ({
       items: [{ productId: "test-product", name: "Test jar", price: 13, quantity: 2 }],

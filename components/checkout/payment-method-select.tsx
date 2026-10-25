@@ -19,12 +19,13 @@ export function PaymentMethodSelect({
       <legend className="text-sm font-semibold text-cocoa-800">
         Payment method
       </legend>
+
       <label
         className={cn(
           "flex items-start gap-3 rounded-xl border px-4 py-3 transition",
           value === "pay_now"
             ? "border-brand-700 bg-brand-50"
-            : "border-cocoa-900/10 bg-white hover:border-brand-200",
+            : "border-cocoa-900/15 bg-white hover:border-cocoa-900/25",
           disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer",
         )}
       >
@@ -41,21 +42,21 @@ export function PaymentMethodSelect({
           <span className="block text-sm font-medium text-cocoa-900">
             {PAYMENT_METHOD_LABELS.pay_now}
           </span>
-          <span className="block text-xs text-cocoa-500" lang="ms">
-            Imbas atau muat turun QR selepas pesanan disahkan. Bayaran akan
-            disemak secara manual oleh TokMieja.
+          <span className="block text-xs text-cocoa-400">
+            DuitNow QR akan dipaparkan selepas pesanan disahkan. Masukkan
+            jumlah tepat dalam aplikasi bank; bayaran disemak secara manual.
           </span>
         </span>
       </label>
+
       <label
         className={cn(
           "flex items-start gap-3 rounded-xl border px-4 py-3 transition",
-          value === "cod" && codAvailable
-            ? "border-brand-700 bg-brand-50"
-            : !codAvailable
-              ? "cursor-not-allowed border-cocoa-900/10 bg-cream-50 opacity-70"
-              : "cursor-pointer border-cocoa-900/10 bg-white hover:border-brand-200",
-          disabled ? "cursor-not-allowed opacity-70" : null,
+          !codAvailable
+            ? "cursor-not-allowed border-cocoa-900/10 bg-cream-50 opacity-70"
+            : value === "cod"
+              ? "cursor-pointer border-brand-700 bg-brand-50"
+              : "cursor-pointer border-cocoa-900/15 bg-white hover:border-cocoa-900/25",
         )}
       >
         <input

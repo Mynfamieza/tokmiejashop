@@ -37,28 +37,38 @@ export function CheckoutFlow() {
   const { items, subtotal, clearCart } = useCart();
 
   const [step, setStep] = useState<Step>("details");
-  const [values, setValues] =
-    useState<CustomerFormValues>(EMPTY_CUSTOMER_FORM);
+  const [values, setValues] = useState<CustomerFormValues>(EMPTY_CUSTOMER_FORM);
   const [errors, setErrors] = useState<CustomerFormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pay_now");
-
   const idempotencyKeyRef = useRef<string | null>(null);
 
   const summaryItems = cartItemsToSummaryItems(items);
   const totalItems = computeItemCount(items);
 
-  // COD is Kulim-only.
+  // COD is Kulim-only. `paymentMethod` is the single source of truth for the
+  // radio, the fee, the review and the submitted order. If the address is not
+  // eligible for COD, `handleChange` resets the method to "pay_now".
   const codAvailable = isKulimAddress(values.address);
 
-  const deliveryFee = calculateDeliveryFee(
-    totalItems,
+  // [TOKMIEJA CHECKOUT DEBUG] temporary diagnostics - remove after debugging.
+  console.debug("[TOKMIEJA CHECKOUT DEBUG] calculateDeliveryFee arguments", {
+    quantity: totalItems,
     paymentMethod,
-  );
+  });
 
+  const deliveryFee = calculateDeliveryFee(totalItems, paymentMethod);
   const total = subtotal + deliveryFee;
+
+  // [TOKMIEJA CHECKOUT DEBUG] temporary diagnostics - remove after debugging.
+  console.debug("[TOKMIEJA CHECKOUT DEBUG] checkout state", {
+    address: values.address,
+    codAvailable,
+    paymentMethod,
+    totalItems,
+    deliveryFee,
+  });
 
   function getKey(): string {
     if (!idempotencyKeyRef.current) {
@@ -67,21 +77,13 @@ export function CheckoutFlow() {
           ? crypto.randomUUID()
           : `key-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     }
-
     return idempotencyKeyRef.current;
   }
 
-  function handleChange(
-    field: keyof CustomerFormValues,
-    value: string,
-  ) {
-    setValues((current) => ({
-      ...current,
-      [field]: value,
-    }));
-
-    // If the address no longer qualifies for COD,
-    // automatically switch back to manual DuitNow QR.
+  function handleChange(field: keyof CustomerFormValues, value: string) {
+    setValues((current) => ({ ...current, [field]: value }));
+    // If the address no longer qualifies for COD, drop back to Pay Now so the
+    // method, the radio and the fee stay in sync.
     if (
       field === "address" &&
       paymentMethod === "cod" &&
@@ -89,32 +91,18 @@ export function CheckoutFlow() {
     ) {
       setPaymentMethod("pay_now");
     }
-
-    setErrors((current) => ({
-      ...current,
-      [field]: undefined,
-    }));
+    setErrors((current) => ({ ...current, [field]: undefined }));
   }
 
   function handleContinue() {
     const nextErrors = validateCustomer(values);
-
-    if (paymentMethod === "cod" && !codAvailable) {
-      setPaymentMethod("pay_now");
-    }
-
     setErrors(nextErrors);
     setSubmitError(null);
-
     if (hasErrors(nextErrors)) return;
 
     setStep("review");
-
     if (typeof window !== "undefined") {
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
 
@@ -141,19 +129,15 @@ export function CheckoutFlow() {
         return;
       }
 
+      // Clear the cart only AFTER a successful order.
       saveOrderConfirmation(result.order);
       clearCart();
 
-      // Both methods use the saved order confirmation; no external gateway.
-      router.replace(
-        `/order-confirmation/${encodeURIComponent(
-          result.order.orderNumber,
-        )}`,
+      router.push(
+        `/order-confirmation/${encodeURIComponent(result.order.orderNumber)}`,
       );
     } catch {
-      setSubmitError(
-        "Sorry, something went wrong. Please try again.",
-      );
+      setSubmitError("Sorry, something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -167,15 +151,10 @@ export function CheckoutFlow() {
     return (
       <EmptyState
         title="Your cart is empty"
-        description="Add some TokMieja favourites before checking out."
+        description="Add a product to your cart before checking out."
         action={
-          <Link
-            href="/products"
-            className={buttonVariants({
-              size: "lg",
-            })}
-          >
-            Browse products
+          <Link href="/products" className={buttonVariants({ size: "lg" })}>
+            Browse the shop
           </Link>
         }
       />
@@ -195,14 +174,12 @@ export function CheckoutFlow() {
               onChange={handleChange}
               disabled={submitting}
             />
-
             <PaymentMethodSelect
               value={paymentMethod}
               onChange={setPaymentMethod}
               codAvailable={codAvailable}
               disabled={submitting}
             />
-
             <div className="flex flex-col gap-3 sm:flex-row-reverse">
               <Button
                 type="button"
@@ -212,14 +189,10 @@ export function CheckoutFlow() {
               >
                 Continue to review
               </Button>
-
               <Link
                 href="/products"
                 className={cn(
-                  buttonVariants({
-                    variant: "outline",
-                    size: "lg",
-                  }),
+                  buttonVariants({ variant: "outline", size: "lg" }),
                   "w-full sm:w-auto",
                 )}
               >
@@ -257,39 +230,23 @@ export function CheckoutFlow() {
 
 function StepIndicator({ step }: { step: Step }) {
   const steps: { id: Step; label: string }[] = [
-    {
-      id: "details",
-      label: "Details",
-    },
-    {
-      id: "review",
-      label: "Review",
-    },
+    { id: "details", label: "Details" },
+    { id: "review", label: "Review" },
   ];
 
   return (
     <ol className="flex items-center gap-3 text-sm">
       {steps.map((item, index) => {
         const active = step === item.id;
-
         return (
-          <li
-            key={item.id}
-            className="flex items-center gap-3"
-          >
+          <li key={item.id} className="flex items-center gap-3">
             {index > 0 ? (
-              <span
-                aria-hidden
-                className="h-px w-6 bg-cocoa-900/15"
-              />
+              <span aria-hidden className="h-px w-6 bg-cocoa-900/15" />
             ) : null}
-
             <span
               className={cn(
                 "flex items-center gap-2",
-                active
-                  ? "font-medium text-cocoa-900"
-                  : "text-cocoa-400",
+                active ? "font-medium text-cocoa-900" : "text-cocoa-400",
               )}
             >
               <span
@@ -302,7 +259,6 @@ function StepIndicator({ step }: { step: Step }) {
               >
                 {index + 1}
               </span>
-
               {item.label}
             </span>
           </li>
@@ -317,19 +273,13 @@ function CheckoutSkeleton() {
     <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr] lg:items-start">
       <div className="flex flex-col gap-5">
         <div className="h-6 w-40 animate-pulse rounded bg-cream-100" />
-
         {[0, 1, 2, 3].map((index) => (
-          <div
-            key={index}
-            className="flex flex-col gap-2"
-          >
+          <div key={index} className="flex flex-col gap-2">
             <div className="h-4 w-28 animate-pulse rounded bg-cream-100" />
-
             <div className="h-12 w-full animate-pulse rounded-xl bg-cream-100" />
           </div>
         ))}
       </div>
-
       <div className="h-72 animate-pulse rounded-panel bg-cream-100" />
     </div>
   );

@@ -3,7 +3,10 @@
 import { OrderSummary } from "@/components/checkout/order-summary";
 import { AlertIcon } from "@/components/icons";
 import { Button } from "@/components/ui/button";
-import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/lib/delivery";
+import {
+  PAYMENT_METHOD_LABELS,
+  type PaymentMethod,
+} from "@/lib/delivery";
 import type { CustomerFormValues, OrderSummaryItem } from "@/lib/checkout";
 import { cn, formatPrice } from "@/lib/utils";
 
@@ -79,7 +82,11 @@ export function ReviewOrder({
           />
           <DetailRow
             label="Payment method"
-            value={PAYMENT_METHOD_LABELS[paymentMethod]}
+            value={
+              paymentMethod === "cod"
+                ? PAYMENT_METHOD_LABELS.cod
+                : PAYMENT_METHOD_LABELS.pay_now
+            }
           />
           {values.locationPin.trim() ? (
             <DetailRow
@@ -108,14 +115,6 @@ export function ReviewOrder({
         </p>
       ) : null}
 
-      {paymentMethod === "pay_now" ? (
-        <p className="text-sm leading-relaxed text-cocoa-500" lang="ms">
-          Sahkan pesanan dahulu. Kod DuitNow QR dan jumlah bayaran akan
-          dipaparkan pada halaman pengesahan. Sila masukkan jumlah yang tepat
-          dalam aplikasi bank anda. Bayaran disahkan secara manual oleh TokMieja.
-        </p>
-      ) : null}
-
       <div className="flex flex-col gap-3 sm:flex-row-reverse sm:justify-start">
         <Button
           type="button"
@@ -127,8 +126,12 @@ export function ReviewOrder({
           {submitting ? (
             <>
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-              Placing order...
+              {paymentMethod === "cod"
+                ? "Placing order..."
+                : "Placing order..."}
             </>
+          ) : paymentMethod === "cod" ? (
+            "Confirm Order"
           ) : (
             "Confirm Order"
           )}
