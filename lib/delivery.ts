@@ -10,7 +10,7 @@ export type PaymentMethod = "pay_now" | "cod";
 
 export const PAYMENT_METHODS: PaymentMethod[] = ["pay_now", "cod"];
 
-/** Standard Pay Now delivery fee (RM). */
+/** Standard DuitNow QR delivery fee (RM). */
 export const DELIVERY_FEE = 6;
 
 /** COD delivery fee (RM). */
@@ -20,7 +20,7 @@ export const COD_DELIVERY_FEE = 2;
 export const FREE_DELIVERY_MIN_QUANTITY = 5;
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  pay_now: "Pay Now",
+  pay_now: "DuitNow QR (Manual Payment)",
   cod: "COD / Pay by Hand",
 };
 
@@ -56,9 +56,17 @@ export function paymentStatusLabel(value: string): string {
   return labels[value] ?? (value || "—");
 }
 
-/** New orders: pay_now is unpaid (no gateway yet); COD is pending on handover. */
+/** QR stays unpaid until owner verification; COD is pending on handover. */
 export function paymentStatusFor(method: PaymentMethod): PaymentStatus {
   return method === "cod" ? "pending" : "unpaid";
+}
+
+export function isPaymentStatus(value: unknown): value is PaymentStatus {
+  return typeof value === "string" && Object.hasOwn(PAYMENT_STATUS_LABELS, value);
+}
+
+export function isPendingQrPayment(method: string, status: string): boolean {
+  return method === "pay_now" && (status === "unpaid" || status === "pending");
 }
 
 export function totalQuantity(items: Array<{ quantity: number }>): number {

@@ -3,6 +3,9 @@ import { isValidLocationPin } from "@/lib/delivery";
 
 export const ORDER_SESSION_PREFIX = "tokmieja.order.";
 
+// Client-only fallback when sessionStorage is blocked. Never populated on SSR.
+const confirmationCache = new Map<string, OrderConfirmation>();
+
 export type CustomerFormValues = {
   name: string;
   phone: string;
@@ -107,13 +110,14 @@ function toNumber(value: unknown): number {
 /** Persist the confirmation for the current browser session (survives refresh). */
 export function saveOrderConfirmation(order: OrderConfirmation): void {
   if (typeof window === "undefined") return;
+  confirmationCache.set(order.orderNumber, order);
   try {
     window.sessionStorage.setItem(
       ORDER_SESSION_PREFIX + order.orderNumber,
       JSON.stringify(order),
     );
   } catch {
-    // Session storage unavailable; the confirmation page will still render.
+    // Client navigation can still read the in-memory confirmation.
   }
 }
 
@@ -121,6 +125,9 @@ export function loadOrderConfirmation(
   orderNumber: string,
 ): OrderConfirmation | null {
   if (typeof window === "undefined") return null;
+
+  const cached = confirmationCache.get(orderNumber);
+  if (cached) return cached;
 
   try {
     const raw = window.sessionStorage.getItem(
@@ -132,6 +139,7 @@ export function loadOrderConfirmation(
     if (
       !parsed ||
       typeof parsed.orderNumber !== "string" ||
+      parsed.orderNumber !== orderNumber ||
       !Array.isArray(parsed.items)
     ) {
       return null;

@@ -71,7 +71,7 @@ export function OrderSummary({
       </dl>
 
       <p className="mt-3 text-xs leading-relaxed text-cocoa-400">
-        Delivery RM6 (Pay Now) or RM2 (COD) · FREE for 5 or more jars.
+        Delivery RM6 (DuitNow QR) or RM2 (COD) · FREE for 5 or more jars.
       </p>
     </section>
   );

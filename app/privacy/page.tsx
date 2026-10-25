@@ -68,8 +68,9 @@ export default function PrivacyPage() {
           <Section title="How we protect it">
             <p>
               Your information is stored in our own database and only TokMieja
-              can access it. Online payments are handled by our payment
-              provider, so we do not store your card or bank details ourselves.
+              can access it. DuitNow QR payments are made in your own bank or
+              e-wallet app and checked manually by TokMieja. We do not collect
+              your card details or banking login details.
             </p>
           </Section>
 
@@ -79,7 +80,6 @@ export default function PrivacyPage() {
               providers that help us operate it, such as:
             </p>
             <ul className="flex list-disc flex-col gap-2 pl-5">
-              <li>our payment provider, to process online payments;</li>
               <li>our hosting and database provider, which stores the data;</li>
               <li>
                 a delivery service, where one is used to send your order, in

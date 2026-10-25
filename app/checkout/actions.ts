@@ -1,6 +1,5 @@
 "use server";
 
-import { headers } from "next/headers";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -8,11 +7,6 @@ import {
   isPaymentMethod,
   isValidLocationPin,
 } from "@/lib/delivery";
-import {
-  createToyyibpayBill,
-  getToyyibpayConfig,
-  isToyyibpayConfigured,
-} from "@/lib/toyyibpay";
 import {
   hasErrors,
   mapOrderError,
@@ -36,7 +30,7 @@ export type CreateOrderInput = {
 };
 
 export type CreateOrderResult =
-  | { ok: true; order: OrderConfirmation; paymentUrl?: string }
+  | { ok: true; order: OrderConfirmation }
   | { ok: false; code: string; message: string };
 
 const FALLBACK_ERROR =
@@ -123,15 +117,6 @@ export async function createOrder(
     };
   }
 
-  // ToyyibPay requires a payer email on the bill.
-  if (paymentMethod === "pay_now" && customer.email.length === 0) {
-    return {
-      ok: false,
-      code: "INVALID_INPUT",
-      message: "Please provide an email address for online payment.",
-    };
-  }
-
   if (!isSupabaseConfigured) {
     return {
       ok: false,
@@ -167,60 +152,10 @@ export async function createOrder(
       return { ok: false, code: "SERVER_ERROR", message: FALLBACK_ERROR };
     }
 
-    // Pay Now -> create a ToyyibPay bill (FPX / DuitNow QR) using the
-    // server-calculated order total. The browser only receives the bill URL.
-    if (order.paymentMethod === "pay_now") {
-      if (!isToyyibpayConfigured()) {
-        return {
-          ok: false,
-          code: "PAYMENT_UNAVAILABLE",
-          message:
-            "Online payment is not available right now. Please try again later.",
-        };
-      }
-
-      const baseUrl = await resolveBaseUrl();
-      const bill = await createToyyibpayBill({
-        amount: order.total,
-        referenceNo: order.orderNumber,
-        returnUrl: `${baseUrl}/payment/toyyibpay/return`,
-        callbackUrl: `${baseUrl}/api/webhooks/toyyibpay`,
-        name: customer.name,
-        email: customer.email,
-        phone: digitsOnly(customer.phone),
-        description: `Order ${order.orderNumber}`,
-      });
-
-      if (!bill.ok) {
-        return {
-          ok: false,
-          code: "PAYMENT_INIT_FAILED",
-          message: bill.message,
-        };
-      }
-
-      const paymentUrl = `${getToyyibpayConfig().apiUrl}/${bill.billCode}`;
-      return { ok: true, order, paymentUrl };
-    }
-
     return { ok: true, order };
   } catch {
     return { ok: false, code: "SERVER_ERROR", message: FALLBACK_ERROR };
   }
-}
-
-async function resolveBaseUrl(): Promise<string> {
-  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "");
-  if (configured) return configured;
-
-  const requestHeaders = await headers();
-  const host = requestHeaders.get("host");
-  const proto = requestHeaders.get("x-forwarded-proto") ?? "http";
-  return host ? `${proto}://${host}` : "http://localhost:3000";
-}
-
-function digitsOnly(value: string): string {
-  return (value ?? "").replace(/[^0-9]/g, "");
 }
 
 function sanitizeCustomer(values: CustomerFormValues): CustomerFormValues {

@@ -68,7 +68,7 @@ export function ProductDetail({
           </p>
 
           <p className="text-xs font-medium text-cocoa-600">
-            Delivery RM{DELIVERY_FEE.toFixed(2)} (Pay Now) or RM
+            Delivery RM{DELIVERY_FEE.toFixed(2)} (DuitNow QR) or RM
             {COD_DELIVERY_FEE.toFixed(2)} (COD) · FREE for{" "}
             {FREE_DELIVERY_MIN_QUANTITY}+ jars
           </p>

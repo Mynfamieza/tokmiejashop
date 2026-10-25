@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CourierControl } from "@/components/dashboard/courier-control";
 import { OrderStatusBadge } from "@/components/dashboard/order-status-badge";
 import { StatusControl } from "@/components/dashboard/status-control";
+import { PaymentStatusControl } from "@/components/dashboard/payment-status-control";
 import type { OrderWithItems } from "@/lib/orders";
 import { formatOrderDate } from "@/lib/order-status";
 import { paymentMethodLabel, paymentStatusLabel } from "@/lib/delivery";
@@ -79,8 +80,8 @@ export function OrderDetail({ order }: { order: OrderWithItems }) {
               <DetailRow
                 label="Payment method"
                 value={
-                  order.payment_method === "pay_now"
-                    ? "Pay Now — ToyyibPay"
+                  order.toyyibpay_bill_code
+                    ? "ToyyibPay (historical)"
                     : paymentMethodLabel(order.payment_method)
                 }
               />
@@ -89,22 +90,13 @@ export function OrderDetail({ order }: { order: OrderWithItems }) {
                 value={paymentStatusLabel(order.payment_status)}
               />
               {order.toyyibpay_bill_code ? (
-                <DetailRow
-                  label="ToyyibPay bill code"
-                  value={order.toyyibpay_bill_code}
-                />
+                <DetailRow label="ToyyibPay bill code" value={order.toyyibpay_bill_code} />
               ) : null}
               {order.toyyibpay_refno ? (
-                <DetailRow
-                  label="ToyyibPay reference no"
-                  value={order.toyyibpay_refno}
-                />
+                <DetailRow label="ToyyibPay reference no" value={order.toyyibpay_refno} />
               ) : null}
               {order.toyyibpay_transaction_id ? (
-                <DetailRow
-                  label="ToyyibPay transaction ID"
-                  value={order.toyyibpay_transaction_id}
-                />
+                <DetailRow label="ToyyibPay transaction ID" value={order.toyyibpay_transaction_id} />
               ) : null}
               {order.payment_paid_at ? (
                 <DetailRow
@@ -113,6 +105,11 @@ export function OrderDetail({ order }: { order: OrderWithItems }) {
                 />
               ) : null}
             </dl>
+            <PaymentStatusControl
+              key={`${order.order_number}-${order.payment_status}`}
+              orderNumber={order.order_number}
+              currentStatus={order.payment_status}
+            />
           </section>
         </div>
 

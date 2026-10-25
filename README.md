@@ -120,10 +120,6 @@ You must run the SQL yourself in the Supabase SQL Editor.
 9. Open a new query, paste `supabase/phase6_delivery_payment.sql` and click
    **Run**. This adds delivery/payment fields and updates the secure
    `create_order` function (see section 16).
-10. Open a new query, paste `supabase/phase7b_toyyibpay.sql` and click **Run**.
-    This renames/adds the ToyyibPay tracking columns and adds the secure
-    callback processor (see section 17). The ToyyibPay secret key is inserted
-    into the database separately.
 
 ### Verify the data
 
@@ -214,7 +210,7 @@ Order statuses: `pending`, `confirmed`, `preparing`, `shipped`, `completed`,
 - **Phase 5:** owner product & category management. ✅
 - **Phase 5.1:** product image upload to Supabase Storage. ✅
 - **Phase 6:** delivery fee, free delivery & payment method foundation. ✅
-- **Phase 7B:** ToyyibPay online payments (FPX + DuitNow QR), callback-verified. ✅
+- **Payment:** manual DuitNow QR (`pay_now`) and Kulim-only COD.
 - **Later:** refunds, WhatsApp, notifications, analytics, PWA.
 
 ---
@@ -240,8 +236,8 @@ Duplicate submissions are prevented by disabling the Confirm button while
 submitting plus an `orders.idempotency_key` unique index: a repeated submission
 returns the existing order instead of creating a second one.
 
-Delivery fee is stored as `0` and is **not** calculated yet; payment is not
-implemented. The UI says so explicitly and does not claim delivery is free.
+The later Phase 6 and Phase 10.2 migrations calculate delivery on the server:
+RM6 for QR or RM2 for eligible COD on 1–4 jars; free for 5+ jars.
 
 Order confirmation details are kept in `sessionStorage` (survives refresh);
 there is no public read access to the `orders` table, so one customer can never
@@ -331,13 +327,13 @@ Owners upload images directly from the product form instead of pasting URLs.
 Business rules (all recalculated **server-side** in `create_order`; the client
 is never trusted for fees, totals, eligibility or payment status):
 
-- **Standard delivery:** RM6, no minimum order.
+- **Standard delivery:** RM6 for QR; RM2 for COD (Phase 10.2), no minimum order.
 - **Free delivery:** when the total product **quantity** across the order is
   **5 jars/bottles or more** (quantity based, not subtotal based).
 - **Payment method:** `pay_now` or `cod` (COD / Pay by Hand).
 - **COD eligibility:** Kulim addresses only, checked server-side.
 - **Payment status:** `pay_now` → `unpaid`; `cod` → `pending`. Nothing is marked
-  `paid` until a real gateway (Phase 7) verifies it.
+  `paid` until the owner manually verifies and saves the payment status.
 - **Location pin:** optional Google Maps link, validated as `http(s)://`.
 
 Database (`supabase/phase6_delivery_payment.sql`):
@@ -359,85 +355,44 @@ Subtotal/Delivery (FREE when applicable)/Total, and the review step shows the
 delivery + payment choice. The customer confirmation and the owner order detail
 display the payment method/status and delivery details.
 
----
+## 17. Manual DuitNow QR payments
 
-## 17. ToyyibPay online payments — FPX + DuitNow QR (Phase 7B)
+Checkout uses the owner's unchanged QR at `public/duitnow-qr.jpg`. The image is
+copied directly from the supplied JPEG, without generating or re-encoding a QR.
+`pay_now` remains the database value for compatibility. Email is optional.
 
-"Pay Now" creates the order first (server-side, unpaid) and then a ToyyibPay
-bill for the exact server-calculated total. COD is unchanged.
+Details → Review (including delivery and total) → Confirm Order → Supabase
+`create_order` → confirmation with the exact saved total, order reference,
+Malay payment instructions and Download QR. Customers enter the amount in
+their bank/e-wallet app themselves. QR orders start `unpaid`; downloading or
+scanning the image does not update payment status. Failed order creation keeps
+the cart. Confirmation survives refresh in the same browser session, with an
+in-memory fallback if sessionStorage is blocked. Track order provides current
+payment status using the order number and checkout phone number.
 
-Flow: checkout → order created unpaid → server calls
-`POST {TOYYIBPAY_API_URL}/index.php/api/createBill` → customer is redirected to
-`{TOYYIBPAY_API_URL}/{BillCode}` → pays via FPX / DuitNow QR → ToyyibPay
-redirects back to `/payment/toyyibpay/return` **and** calls
-`/api/webhooks/toyyibpay`. The return page only displays a status it re-checks
-server-side; the callback is the only thing that marks an order paid.
+The owner checks the receiving bank/e-wallet account, matches the amount and
+reference, then uses **Payment status → Paid → Save payment status** in the
+order detail. Only an authenticated, allowlisted owner can save; existing RLS
+remains enforced. Order status, courier, stock and totals are not changed by
+payment verification. Historical ToyyibPay references and timestamps remain
+visible in the owner detail.
 
-**Security**
+### Database change (manual; not applied by this code change)
 
-- `TOYYIBPAY_SECRET_KEY` is server-only (read in `lib/toyyibpay.ts`); it is
-  never sent to the browser and never stored in `NEXT_PUBLIC_*`.
-- The bill amount comes from the server-side order total (`create_order`),
-  never the browser.
-- The callback hash `MD5(secret + status + order_id + refno + "ok")` is
-  verified in the webhook route and again inside
-  `public.process_toyyibpay_callback` (SECURITY DEFINER) using the secret stored
-  in `public.app_settings` (RLS on, no policies). Only `status = 1` marks an
-  order `paid`; duplicates are idempotent and a paid order is never downgraded.
-- Payment confirmation updates payment state only — it never decrements stock or
-  creates another order.
+Run `supabase/phase13_manual_duitnow.sql` after existing migrations in a test
+Supabase project first. It safely revokes public/anon/authenticated execution
+of the old ToyyibPay callback RPC if it exists. It preserves the function,
+payment records, columns and historical migrations, and changes no order data.
+Do not re-run `phase7b_toyyibpay.sql` afterward, because it re-grants callback
+access. The active checkout no longer calls any ToyyibPay API, return page or
+webhook. The existing `create_order` from `phase10_2_cod_delivery_fee.sql`
+already accepts `pay_now`, allows null email and sets QR payments to `unpaid`;
+no replacement of that function is needed.
 
-### Sandbox setup
+Remove obsolete `TOYYIBPAY_*` variables from any future deployment environment
+when rolling this change out. The example and local environment no longer
+contain them. No service-role key is required. Keep `NEXT_PUBLIC_APP_URL` since
+metadata still uses it. Do not run seed SQL against an existing live store.
 
-1. Register a sandbox account at <https://dev.toyyibpay.com>.
-2. In the sandbox dashboard, copy your **User Secret Key**, create a
-   **Category**, and copy its **Category Code**.
-3. Configure `.env.local`:
-
-   ```bash
-   TOYYIBPAY_API_URL=https://dev.toyyibpay.com
-   TOYYIBPAY_SECRET_KEY=your_sandbox_user_secret_key
-   TOYYIBPAY_CATEGORY_CODE=your_category_code
-   TOYYIBPAY_ENABLE_DUITNOW_QR=1
-   NEXT_PUBLIC_APP_URL=http://localhost:3000
-   ```
-
-4. Store the secret in the database (so the callback hash can be verified
-   server-side) — this value is not committed:
-
-   ```sql
-   insert into public.app_settings (key, value)
-   values ('toyyibpay_secret_key', 'YOUR_TOYYIBPAY_USER_SECRET_KEY')
-   on conflict (key) do update
-     set value = excluded.value, updated_at = now();
-   ```
-
-### Testing
-
-- **Return + callback URLs:** the bill uses `billReturnUrl` =
-  `/payment/toyyibpay/return` and `billCallbackUrl` =
-  `/api/webhooks/toyyibpay`. ToyyibPay cannot deliver callbacks to
-  `localhost`, so expose your dev server with a public HTTPS tunnel
-  (Ngrok, Cloudflare Tunnel, `localhost.run`, …) and set `NEXT_PUBLIC_APP_URL`
-  to that tunnel URL while testing callbacks. ToyyibPay does not require one
-  specific provider.
-- **Successful payment:** pay the sandbox bill via the bank simulator, then
-  confirm the order flips to `paid` in the owner dashboard. You can also resend
-  the callback manually with a correctly hashed body.
-- **Failed / pending:** ToyyibPay `status = 3` sets `payment_status = 'failed'`;
-  `2` (or anything else) keeps it pending. An order is only ever marked paid by
-  a verified `status = 1` callback.
-- **Inspect results:** the order detail shows the payment method, status,
-  ToyyibPay bill code / reference no / transaction ID and the paid timestamp.
-- **Code-level tests:** `lib/toyyibpay.ts` hash + status helpers are
-  unit-tested; live bill creation and callback delivery require sandbox access.
-
-### Switch to production later
-
-- Set `TOYYIBPAY_API_URL=https://toyyibpay.com`, a **production**
-  `TOYYIBPAY_SECRET_KEY` and `TOYYIBPAY_CATEGORY_CODE`, set
-  `NEXT_PUBLIC_APP_URL` to the live HTTPS URL (ToyyibPay callbacks require a
-  public HTTPS URL), and update `public.app_settings.toyyibpay_secret_key` with
-  the production key.
-- Set `TOYYIBPAY_ENABLE_DUITNOW_QR=0` if DuitNow QR is not activated on the
-  account; FPX works regardless.
+See [the manual test checklist](docs/manual-duitnow-testing.md) for exact test
+steps. This change does not deploy the site or apply SQL automatically.
