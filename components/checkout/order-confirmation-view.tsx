@@ -89,7 +89,7 @@ export function OrderConfirmationView({
       <p className="text-sm leading-relaxed text-cocoa-500">
         {order.paymentMethod === "cod"
           ? "COD / Pay by Hand — please prepare payment when your order is handed over. We will contact you to confirm delivery."
-          : "Bayaran DuitNow QR disemak secara manual oleh TokMieja. Status di halaman ini ialah status semasa pesanan dibuat."}
+          : "TokMieja checks payments manually. The status shown here was recorded when the order was placed."}
       </p>
 
       <div className="flex flex-col gap-3 sm:flex-row">

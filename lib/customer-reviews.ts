@@ -1,5 +1,5 @@
 export type ReviewScreenshot = {
-  /** Place the owner's screenshot in public/reviews/ and use /reviews/filename. */
+  /** Only privacy-redacted screenshots may be placed in public/reviews/. */
   src: `/reviews/${string}`;
   alt: string;
   width: number;
@@ -12,38 +12,75 @@ export type CustomerReview = {
   rating: 1 | 2 | 3 | 4 | 5;
   comment: string;
   source: "Shopee";
-  isSample: boolean;
-  screenshot: ReviewScreenshot | null;
+  screenshot: ReviewScreenshot;
 };
 
-// Layout samples only. Replace with owner-provided reviews and screenshots.
-// Set isSample to false only after the real review has been supplied.
+// Exact, short excerpts from the five owner-supplied Shopee screenshots.
+// Preserve the original wording; never put usernames or raw screenshots here.
 export const CUSTOMER_REVIEWS: CustomerReview[] = [
   {
-    id: "sample-everyday-meals",
-    customer: "Sample customer 01",
+    id: "shopee-01",
+    customer: "Customer 01",
     rating: 5,
-    comment: "A little extra flavour for everyday meals. This is sample review text for the layout preview.",
+    comment: "nak repeat lagi ni.",
     source: "Shopee",
-    isSample: true,
-    screenshot: null,
+    screenshot: {
+      src: "/reviews/shopee-review-01.png",
+      alt: "Five-star Shopee review for Customer 01; username and profile photo hidden",
+      width: 1170,
+      height: 558,
+    },
   },
   {
-    id: "sample-family-table",
-    customer: "Sample customer 02",
+    id: "shopee-02",
+    customer: "Customer 02",
     rating: 5,
-    comment: "Something lovely to share around the table. This is sample review text, not actual customer feedback.",
+    comment: "Hari ni order. Esok post terus gaiss.",
     source: "Shopee",
-    isSample: true,
-    screenshot: null,
+    screenshot: {
+      src: "/reviews/shopee-review-02.png",
+      alt: "Five-star Shopee review for Customer 02; username and profile photo hidden",
+      width: 1170,
+      height: 817,
+    },
   },
   {
-    id: "sample-pantry-favourite",
-    customer: "Sample customer 03",
-    rating: 4,
-    comment: "An everyday pantry favourite. This placeholder will be replaced with a real customer review.",
+    id: "shopee-03",
+    customer: "Customer 03",
+    rating: 5,
+    comment: "Anak laki darjah 3 suka sangat sambal ni.",
     source: "Shopee",
-    isSample: true,
-    screenshot: null,
+    screenshot: {
+      src: "/reviews/shopee-review-03.png",
+      alt: "Five-star Shopee review for Customer 03; username and profile photo hidden",
+      width: 1170,
+      height: 955,
+    },
+  },
+  {
+    id: "shopee-04",
+    customer: "Customer 04",
+    rating: 5,
+    comment: "crunchy dan sgt² sedap",
+    source: "Shopee",
+    screenshot: {
+      src: "/reviews/shopee-review-04.png",
+      alt: "Five-star Shopee review for Customer 04; username and profile photo hidden",
+      width: 1170,
+      height: 568,
+    },
+  },
+  {
+    id: "shopee-05",
+    customer: "Customer 05",
+    rating: 5,
+    comment: "sedap nak mampuii",
+    source: "Shopee",
+    screenshot: {
+      src: "/reviews/shopee-review-05.png",
+      alt: "Five-star Shopee review for Customer 05; username and profile photo hidden",
+      width: 1170,
+      height: 680,
+    },
   },
 ];

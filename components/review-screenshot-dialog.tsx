@@ -7,12 +7,10 @@ import type { ReviewScreenshot } from "@/lib/customer-reviews";
 
 export function ReviewScreenshotDialog({
   customer,
-  isSample,
   screenshot,
 }: {
   customer: string;
-  isSample: boolean;
-  screenshot: ReviewScreenshot | null;
+  screenshot: ReviewScreenshot;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -34,12 +32,12 @@ export function ReviewScreenshotDialog({
       <button
         type="button"
         aria-haspopup="dialog"
-        aria-label={`View Original screenshot for ${customer}${isSample ? " (sample preview)" : ""}`}
+        aria-label={`View Original screenshot for ${customer}`}
         onClick={() => dialogRef.current?.showModal()}
-        className="mt-5 inline-flex min-h-11 items-center justify-between gap-3 rounded-xl border border-brand-700/15 px-4 text-sm font-semibold text-brand-700 transition-colors hover:border-brand-700/30 hover:bg-brand-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700"
+        className="mt-3 inline-flex min-h-11 items-center justify-between gap-2 rounded-xl border border-brand-700/15 px-3 text-xs font-semibold text-brand-700 transition-colors hover:border-brand-700/30 hover:bg-brand-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-700 sm:min-h-9"
       >
         View Original
-        <ArrowRightIcon className="h-4 w-4" />
+        <ArrowRightIcon className="h-3.5 w-3.5" />
       </button>
 
       <dialog
@@ -53,7 +51,7 @@ export function ReviewScreenshotDialog({
           <div>
             <h3 id={titleId} className="font-display text-xl font-semibold">Original Shopee review</h3>
             <p id={descriptionId} className="mt-1 text-sm text-cocoa-500">
-              {isSample ? "Sample preview only · not a genuine customer review" : `Review shared by ${customer}`}
+              {customer} · Username and profile photo hidden for privacy
             </p>
           </div>
           <button
@@ -66,21 +64,7 @@ export function ReviewScreenshotDialog({
           </button>
         </div>
         <div className="p-5 sm:p-7">
-          {screenshot ? (
-            <Image src={screenshot.src} alt={screenshot.alt} width={screenshot.width} height={screenshot.height} unoptimized className="h-auto w-full rounded-xl" />
-          ) : (
-            <div className="flex min-h-72 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-brand-700/20 bg-cream-100 px-6 py-10 text-center">
-              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand-700">
-                {isSample ? "Sample preview" : "Screenshot unavailable"}
-              </span>
-              <p className="font-display text-xl font-semibold text-cocoa-900">No original screenshot yet</p>
-              <p className="max-w-sm text-sm leading-relaxed text-cocoa-600">
-                {isSample
-                  ? "This is a layout placeholder. The original Shopee screenshot will appear here once the owner provides it."
-                  : "The original review screenshot has not been added yet."}
-              </p>
-            </div>
-          )}
+          <Image src={screenshot.src} alt={screenshot.alt} width={screenshot.width} height={screenshot.height} unoptimized className="h-auto w-full rounded-xl" />
         </div>
       </dialog>
     </>

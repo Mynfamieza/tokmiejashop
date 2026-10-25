@@ -12,36 +12,35 @@ export function DuitNowPayment({
   return (
     <section
       aria-labelledby="duitnow-heading"
-      lang="ms"
+      lang="en"
       className="rounded-panel border border-brand-200 bg-cream-100 p-5 sm:p-6"
     >
       <h2 id="duitnow-heading" className="font-display text-xl font-semibold text-brand-800">
-        Bayaran DuitNow QR
+        DuitNow QR Payment
       </h2>
       <p role="status" className="mt-3 rounded-xl bg-brand-50 px-4 py-3 text-sm font-semibold text-brand-800">
-        Menunggu Pengesahan Bayaran
+        Awaiting payment verification
       </p>
       <p className="mt-3 text-sm leading-relaxed text-cocoa-700">
-        Pesanan anda telah diterima. Bayaran belum disahkan. TokMieja akan
-        menyemak bayaran anda secara manual.
+        Thanks for your order! TokMieja will verify your payment manually.
       </p>
 
       <dl className="mt-5 grid gap-4 rounded-xl border border-cocoa-900/10 bg-white p-4 sm:grid-cols-2">
         <div>
-          <dt className="text-sm text-cocoa-500">Jumlah perlu dibayar (MYR)</dt>
+          <dt className="text-sm text-cocoa-500">Amount (MYR)</dt>
           <dd className="mt-1 font-display text-3xl font-semibold text-brand-700">
             {formatPrice(total)}
           </dd>
         </div>
         <div className="min-w-0">
-          <dt className="text-sm text-cocoa-500">Rujukan pesanan</dt>
+          <dt className="text-sm text-cocoa-500">Order reference</dt>
           <dd className="mt-1 break-words font-semibold text-cocoa-900">{orderNumber}</dd>
         </div>
       </dl>
 
       <Image
         src="/duitnow-qr.jpg"
-        alt="DuitNow QR TokMieja — penerima SYARMIN BINTI MUHAMAD FA"
+        alt="TokMieja DuitNow QR — recipient SYARMIN BINTI MUHAMAD FA"
         width={591}
         height={796}
         unoptimized
@@ -49,23 +48,20 @@ export function DuitNowPayment({
       />
 
       <ol className="mt-5 list-decimal space-y-3 pl-5 text-sm leading-relaxed text-cocoa-700">
-        <li>Buka aplikasi bank atau e-dompet anda dan pilih DuitNow QR.</li>
         <li>
-          Imbas kod QR di atas. Jika menggunakan telefon yang sama, tekan
-          <strong> Download QR / Muat turun QR</strong>, kemudian pilih gambar
-          tersebut daripada galeri dalam aplikasi bank yang menyokongnya.
+          Scan with your bank or e-wallet app. Using the same phone?
+          <strong> Download QR</strong> and select it from your gallery if supported.
         </li>
         <li>
-          Semak nama penerima: <strong>SYARMIN BINTI MUHAMAD FA</strong>.
+          Check the recipient: <strong>SYARMIN BINTI MUHAMAD FA</strong>.
         </li>
         <li>
-          Masukkan sendiri jumlah tepat <strong>{formatPrice(total)}</strong>.
-          Jumlah tidak diisi secara automatik. Masukkan <strong className="break-words">{orderNumber}</strong>
-          {" "}sebagai rujukan jika ruangan rujukan tersedia.
+          Pay exactly <strong>{formatPrice(total)}</strong>. Enter this amount
+          manually. Reference: <strong className="break-words">{orderNumber}</strong>
+          {" "}(if available).
         </li>
         <li>
-          Sahkan bayaran dan simpan resit untuk rujukan. Status kekal belum
-          dibayar sehingga TokMieja menyemak dan mengesahkannya.
+          Save your receipt.
         </li>
       </ol>
 
@@ -74,7 +70,7 @@ export function DuitNowPayment({
         download="TokMieja-DuitNow-QR.jpg"
         className={`${buttonVariants({ size: "lg" })} mt-5 w-full sm:w-auto`}
       >
-        Download QR / Muat turun QR
+        Download QR
       </a>
     </section>
   );

@@ -153,12 +153,13 @@ test("QR render shows the saved amount, original asset, download and pending cop
   const html = renderToStaticMarkup(React.createElement(DuitNowPayment, {
     orderNumber: summary.order_number, total: summary.total,
   }));
-  assert.match(html, /Menunggu Pengesahan Bayaran/);
+  assert.match(html, /Awaiting payment verification/);
   assert.match(html, /RM\s*32\.00/);
   assert.match(html, /TM-TEST-001/);
   assert.match(html, /src="\/duitnow-qr.jpg"/);
   assert.match(html, /download="TokMieja-DuitNow-QR.jpg"/);
-  assert.match(html, /Masukkan sendiri jumlah tepat/);
+  assert.match(html, /Pay exactly/);
+  assert.match(html, /Enter this amount/);
   assert.doesNotMatch(html, /Payment Successful/i);
 });
 
